@@ -35,6 +35,8 @@ To be decided.
 
     import autotrello
 
+Examples are available in `<examples.ipynb>`_.
+
 
 Requirements
 ============
