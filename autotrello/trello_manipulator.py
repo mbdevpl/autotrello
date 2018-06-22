@@ -1,5 +1,6 @@
 
 # import collections
+import itertools
 import logging
 import typing as t
 
@@ -130,10 +131,15 @@ class TrelloManipulator(trello.TrelloClient):
         self.set_handled_recurring_boards(recurring_boards)
 
     def start_warmup(self) -> None:
+        """Start warmup."""
         _LOG.info('starting warmup...')
+        # create a list of card names being worked on
+        self._work_board.refresh_cache()
+        cards_being_worked_on = {card.name for card in self._work_board.cached_cards['Doing']}
+
         self._warmup_board.refresh_cache()
         for list_name in BOARD_LISTS[BoardKind.Warmup]:
-            assert len(self._warmup_board.cached_cards[list_name]) == 0, list_name
+            assert not self._warmup_board.cached_cards[list_name], list_name
         # for list_name, cards in self._warmup_board.cached_cards.items():
         #    if list_name == 'Backlog':
         #        _LOG.info('%i cards in backlog', len(cards))
@@ -143,22 +149,23 @@ class TrelloManipulator(trello.TrelloClient):
         #        _LOG.error('cannot start my day: cards in %s in list %s.',
         #                   self._startmyday_board, list_name)
         #        raise RuntimeError()
-        # add cards from normal boards
-        for board in self._boards_normal:
+
+        for board in self._boards_recurring:
+            _LOG.info('organizing recurring board %s', board)
+            board.organize_cards()
+
+        # add cards from normal boards and recurring boards
+        for board in itertools.chain(self._boards_normal, self._boards_recurring):
             _LOG.info('scanning normal board %s', board)
             for card in board.cached_cards['To do']:
                 card_data = self.create_card_data_for_managed_copy(card)
-                _LOG.info('creating card: %s', card_data)
-                self._warmup_board.cached_lists['?'].add_card(**card_data)
-        # add cards from recurring boards
-        for board in self._boards_recurring:
-            _LOG.info('scanning recurring board %s', board)
-            # _LOG.debug('board %s has %i lists', board, len(board.cached_lists))
-            board.organize_cards()
-            for card in board.cached_cards['To do']:
-                card_data = self.create_card_data_for_managed_copy(card)
-                _LOG.info('creating card: %s', card_data)
-                self._warmup_board.cached_lists['?'].add_card(**card_data)
+                if card_data['name'] in cards_being_worked_on:
+                    list_name = 'Now'
+                else:
+                    list_name = '?'
+                _LOG.info('creating card: "%s" in list "%s"', card_data['name'], list_name)
+                _LOG.debug('created card data: %s', card_data)
+                self._warmup_board.cached_lists[list_name].add_card(**card_data)
         _LOG.info('started warmup.')
 
     def abort_warmup(self) -> None:
@@ -173,18 +180,21 @@ class TrelloManipulator(trello.TrelloClient):
                 card.delete()
 
     def start_work(self) -> None:
+        """Start work, assuming that all cards in warmup are properly classified."""
         _LOG.info('starting work...')
         self._warmup_board.refresh_cache()
         # cannot start work if some tasks are not moved from ? into Now/Later/Never
-        if len(self._warmup_board.cached_cards['?']) > 0:
+        if self._warmup_board.cached_cards['?']:
             raise ValueError('List "?" on warmup board has {} cards left, please move them.'.format(
                 len(self._warmup_board.cached_cards['?'])))
         self._work_board.refresh_cache()
-        for list_name in BOARD_LISTS[BoardKind.Work]:
-            if len(self._work_board.cached_cards[list_name]) > 0:
-                raise ValueError(
-                    'List "{}" on work board has {} cards left, please abort work.'.format(
-                        list_name, len(self._warmup_board.cached_cards[list_name])))
+        cards_being_worked_on = {card.name for card in self._work_board.cached_cards['Doing']}
+        self.abort_work()
+        # for list_name in BOARD_LISTS[BoardKind.Work]:
+        #    if self._work_board.cached_cards[list_name]:
+        #        raise ValueError(
+        #            'List "{}" on work board has {} cards left, please abort work.'.format(
+        #                list_name, len(self._warmup_board.cached_cards[list_name])))
         # delete auto-generated cards that are classified as Later
         for card in self._warmup_board.cached_cards['Later']:
             assert card.name.startswith(_MANIPULATOR_SYMBOL), card
@@ -199,13 +209,22 @@ class TrelloManipulator(trello.TrelloClient):
         for board in self._boards_normal:
             for card in board.cached_cards['Doing']:
                 card_data = self.create_card_data_for_managed_copy(card)
-                _LOG.info('creating card: %s', card_data)
-                self._work_board.cached_lists['To do'].add_card(**card_data)
+                if card_data['name'] in cards_being_worked_on:
+                    list_name = 'Doing'
+                else:
+                    list_name = 'To do'
+                _LOG.info('creating card: "%s" in list "%s"', card_data['name'], list_name)
+                _LOG.debug('created card data: %s', card_data)
+                self._work_board.cached_lists[list_name].add_card(**card_data)
         # move cards classified as Now
         for card in self._warmup_board.cached_cards['Now']:
             assert card.name.startswith(_MANIPULATOR_SYMBOL), card
             _LOG.info('moving card %s to board %s', card, self._work_board)
-            card.change_board(self._work_board.id, self._work_board.cached_lists['To do'].id)
+            if card.name in cards_being_worked_on:
+                list_name = 'Doing'
+            else:
+                list_name = 'To do'
+            card.change_board(self._work_board.id, self._work_board.cached_lists[list_name].id)
         # _LOG.info('list %s has %i cards', list_name, len(cards))
         # _LOG.debug('list %s has cards: %s', list_name, cards)
         _LOG.info('work started.')
