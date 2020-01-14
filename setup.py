@@ -4,7 +4,6 @@ import setup_boilerplate
 
 
 class Package(setup_boilerplate.Package):
-
     """Package metadata."""
 
     name = 'autotrello'
@@ -20,6 +19,8 @@ class Package(setup_boilerplate.Package):
         'Operating System :: Microsoft :: Windows',
         'Operating System :: POSIX :: Linux',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3 :: Only',
         'Topic :: Utilities']
     keywords = ['automation', 'trello']
