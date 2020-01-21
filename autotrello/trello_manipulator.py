@@ -15,32 +15,47 @@ _MANIPULATOR_SYMBOL = '⚙'
 
 
 class TrelloManipulator(trello.TrelloClient):
-
     """Client for Trello with high-level functionality."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._warmup_board = None
         self._work_board = None
-        self._cache = False
+        # self._cache = False
         self._boards = None
         self._boards_by_id = None
         self._boards_normal = []
         self._boards_recurring = []
 
     @property
-    def cache(self) -> bool:
-        return self._cache
+    def warmup_board(self):
+        return self._warmup_board
 
-    @cache.setter
-    def cache(self, value: bool):
-        self._cache = value
+    @property
+    def work_board(self):
+        return self._work_board
+
+    # @property
+    # def cache(self) -> bool:
+    #     return self._cache
+
+    # @cache.setter
+    # def cache(self, value: bool):
+    #     self._cache = value
 
     @property
     def boards(self):
-        if not self._cache or self._boards is None:
-            self.refresh_boards_list()
+        # if not self._cache or self._boards is None:
+        #     self.refresh_boards_list()
         return self._boards
+
+    @property
+    def normal_boards(self):
+        return self._boards_normal
+
+    @property
+    def recurring_boards(self):
+        return self._boards_recurring
 
     def refresh_boards_list(self):
         self._boards = self.list_boards()
@@ -49,9 +64,7 @@ class TrelloManipulator(trello.TrelloClient):
     def refresh_handled_boards_cache(self):
         self._warmup_board.refresh_cache()
         self._work_board.refresh_cache()
-        for board in self._boards_normal:
-            board.refresh_cache()
-        for board in self._boards_recurring:
+        for board in itertools.chain(self._boards_normal, self._boards_recurring):
             board.refresh_cache()
 
     def refresh_cache(self):
@@ -61,7 +74,7 @@ class TrelloManipulator(trello.TrelloClient):
         _LOG.info('cache was completely rebuilt.')
 
     def find_all_board_ids(self, param_name: str, param_value: t.Any) -> list:
-        return [_.id for _ in self.boards if getattr(_, param_name) == param_value]
+        return [_.id for _ in self._boards if getattr(_, param_name) == param_value]
 
     def find_board_id(self, param_name: str, param_value: t.Any) -> str:
         board_ids = self.find_all_board_ids(param_name, param_value)
@@ -70,12 +83,11 @@ class TrelloManipulator(trello.TrelloClient):
 
     def create_card_data_for_managed_copy(self, card: trello.Card):
         card_data = {}
-        card_data['name'] = '{} {} {} {}'.format(
-            _MANIPULATOR_SYMBOL, self._boards_by_id[card.board_id].name, _MANIPULATOR_SYMBOL,
-            card.name)
-        card_data['desc'] = '{} this is auto-created card linked to {} from board {} {}\n\n{}' \
-            .format(_MANIPULATOR_SYMBOL, card.url, self._boards_by_id[card.board_id].url,
-                    _MANIPULATOR_SYMBOL, card.description)
+        card_data['name'] = f'{_MANIPULATOR_SYMBOL} {self._boards_by_id[card.board_id].name}' \
+            f' {_MANIPULATOR_SYMBOL} {card.name}'
+        card_data['desc'] = f'{_MANIPULATOR_SYMBOL} this is auto-created card linked to' \
+            f' {card.url} from board {self._boards_by_id[card.board_id].url}' \
+            ' {_MANIPULATOR_SYMBOL}\n\n{card.description}'
         try:
             card_data['due'] = card.due_date.isoformat()
         except:
@@ -235,22 +247,10 @@ class TrelloManipulator(trello.TrelloClient):
             return
         self._work_board.refresh_cache()
         for list_name in BOARD_LISTS[BoardKind.Work]:
-            for card in self._work_board.cached_cards[list_name]:
+            cards = self._work_board.cached_cards[list_name]
+            # _LOG.info('list %s has %i cards', list_name, len(cards))
+            # _LOG.debug('list %s has cards: %s', list_name, cards)
+            for card in cards:
                 assert card.name.startswith(_MANIPULATOR_SYMBOL), card
                 _LOG.warning('deleting card %s', card)
                 card.delete()
-
-    def end_work(self):
-        _LOG.info('ending work...')
-        self._work_board.refresh_cache()
-        # for list_name, cards in self._startmyday_board.cached_cards.items():
-        #    if list_name != '?':
-        #        continue
-        #    _LOG.info('list %s has %i cards', list_name, len(cards))
-        #    _LOG.debug('list %s has cards: %s', list_name, cards)
-        #    for card in cards:
-        #        assert card.name.startswith(_MANIPULATOR_SYMBOL), card
-        #        _LOG.warning('deleting card %s', card)
-        #        card.delete()
-        self.abort_work()
-        _LOG.info('work ended.')
