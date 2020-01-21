@@ -109,7 +109,6 @@ _LOG = logging.getLogger(__name__)
 
 
 class RecurringBoardCache(BoardCache):
-
     """A cache for trello.Board capable of automatic card organization based on some assumptions.
 
     Assumptions:

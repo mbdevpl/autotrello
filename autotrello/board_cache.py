@@ -35,7 +35,6 @@ BOARD_LISTS = {
 
 
 class BoardCache:
-
     """Wrapper around trello.Board that caches all downloaded data."""
 
     def __init__(self, board: trello.Board, board_kind: BoardKind, *args, **kwargs):

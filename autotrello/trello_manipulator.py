@@ -127,6 +127,7 @@ class TrelloManipulator(trello.TrelloClient):
         self._boards_recurring = boards
 
     def set_boards_automatically(self) -> None:
+        """Detect boards to be used by autotrello using configured name suffixes."""
         self.refresh_boards_list()
         normal_boards: t.List[str] = []
         recurring_boards: t.List[str] = []
