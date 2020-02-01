@@ -1,3 +1,4 @@
+"""Manipulation of multiple Trello boards at once."""
 
 # import collections
 import itertools
@@ -82,16 +83,19 @@ class TrelloManipulator(trello.TrelloClient):
         return board_ids[0]
 
     def create_card_data_for_managed_copy(self, card: trello.Card):
+        """Create a dictionary of card constructor arguments to make a card duplicate."""
         card_data = {}
         card_data['name'] = f'{_MANIPULATOR_SYMBOL} {self._boards_by_id[card.board_id].name}' \
             f' {_MANIPULATOR_SYMBOL} {card.name}'
         card_data['desc'] = f'{_MANIPULATOR_SYMBOL} this is auto-created card linked to' \
             f' {card.url} from board {self._boards_by_id[card.board_id].url}' \
             ' {_MANIPULATOR_SYMBOL}\n\n{card.description}'
-        try:
-            card_data['due'] = card.due_date.isoformat()
-        except:
-            pass
+        if card.due_date:
+            try:
+                card_data['due'] = card.due_date.isoformat()
+            except AttributeError:
+                _LOG.exception('failed to obtain due_date (type: %s, value: %s) for card %s',
+                               type(card.due_date), card.due_date, card_data)
         # 'labels': []
         # 'position': 'bottom'
         return card_data
@@ -109,6 +113,7 @@ class TrelloManipulator(trello.TrelloClient):
         _LOG.info('set Work board to %s', board)
 
     def set_handled_normal_boards(self, board_names: t.Iterable[str]) -> None:
+        """Set boards that should be assumed to contain non-recurring tasks."""
         boards = []
         for name in board_names:
             board_id = self.find_board_id('name', name)
@@ -118,6 +123,7 @@ class TrelloManipulator(trello.TrelloClient):
         self._boards_normal = boards
 
     def set_handled_recurring_boards(self, board_names: t.Iterable[str]) -> None:
+        """Set boards that should be assumed to contain recurring tasks."""
         boards = []
         for name in board_names:
             board_id = self.find_board_id('name', name)

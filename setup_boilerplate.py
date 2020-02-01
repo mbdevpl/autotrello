@@ -1,14 +1,14 @@
 """Below code is generic boilerplate and normally should not be changed.
 
-To avoid setup script boilerplate, create "setup.py" file with the following minimal contents
-and modify them according to the specifics of your package.
+To avoid setup script boilerplate, create "setup.py" file with the minimal contents as given
+in SETUP_TEMPLATE below, and modify it according to the specifics of your package.
 
 See the implementation of setup_boilerplate.Package for default metadata values and available
 options.
 """
 
-import importlib
 import pathlib
+import runpy
 import sys
 import typing as t
 
@@ -17,7 +17,7 @@ import docutils.parsers.rst
 import docutils.utils
 import setuptools
 
-__updated__ = '2018-04-18'
+__updated__ = '2020-01-29'
 
 SETUP_TEMPLATE = '''"""Setup script."""
 
@@ -30,12 +30,12 @@ class Package(setup_boilerplate.Package):
 
     name = ''
     description = ''
-    download_url = 'https://github.com/mbdevpl/...'
+    url = 'https://github.com/mbdevpl/...'
     classifiers = [
         'Development Status :: 1 - Planning',
-        'Programming Language :: Python :: 3.4',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3 :: Only']
     keywords = []
 
@@ -50,10 +50,14 @@ HERE = pathlib.Path(__file__).resolve().parent
 def find_version(
         package_name: str, version_module_name: str = '_version',
         version_variable_name: str = 'VERSION') -> str:
-    """Simulate behaviour of "from package_name._version import VERSION", and return VERSION."""
-    version_module = importlib.import_module(
-        '{}.{}'.format(package_name.replace('-', '_'), version_module_name))
-    return getattr(version_module, version_variable_name)
+    """Simulate behaviour of "from package_name._version import VERSION", and return VERSION.
+
+    To avoid importing whole package only to read the version, just module containing the version
+    is imported. Therefore relative imports in that module will break the setup.
+    """
+    version_module_path = f'{package_name.replace("-", "_")}/{version_module_name}.py'
+    version_module_vars = runpy.run_path(version_module_path)
+    return version_module_vars[version_variable_name]
 
 
 def find_packages(root_directory: str = '.') -> t.List[str]:
@@ -103,16 +107,14 @@ def find_required_python_version(
     versions_min, versions_only = partition_version_classifiers(
         classifiers, version_prefix, only_suffix)
     if len(versions_only) > 1:
-        raise ValueError(
-            'more than one "{}" version encountered in {}'.format(only_suffix, versions_only))
+        raise ValueError(f'more than one "{only_suffix}" version encountered in {versions_only}')
     only_version = None
     if len(versions_only) == 1:
         only_version = versions_only[0]
         for version in versions_min:
             if version[:len(only_version)] != only_version:
-                raise ValueError(
-                    'the "{}" version {} is inconsistent with version {}'
-                    .format(only_suffix, only_version, version))
+                raise ValueError(f'the "{only_suffix}" version {only_version}'
+                                 f' is inconsistent with version {version}')
     min_supported_version = None
     for version in versions_min:
         if min_supported_version is None or \
@@ -137,15 +139,15 @@ def parse_rst(text: str) -> docutils.nodes.document:
 
 
 class SimpleRefCounter(docutils.nodes.NodeVisitor):
-
     """Find all simple references in a given docutils document."""
 
     def __init__(self, *args, **kwargs):
+        """Initialize the SimpleRefCounter object."""
         super().__init__(*args, **kwargs)
         self.references = []
 
     def visit_reference(self, node: docutils.nodes.reference) -> None:
-        """Called for "reference" nodes."""
+        """Call for "reference" nodes."""
         if len(node.children) != 1 or not isinstance(node.children[0], docutils.nodes.Text) \
                 or not all(_ in node.attributes for _ in ('name', 'refuri')):
             return
@@ -154,8 +156,6 @@ class SimpleRefCounter(docutils.nodes.NodeVisitor):
             if path.is_absolute():
                 return
             resolved_path = path.resolve()
-        except FileNotFoundError:  # in resolve(), prior to Python 3.6
-            return
         except OSError:  # in is_absolute() and resolve(), on URLs in Windows
             return
         try:
@@ -168,12 +168,12 @@ class SimpleRefCounter(docutils.nodes.NodeVisitor):
         self.references.append(node)
 
     def unknown_visit(self, node: docutils.nodes.Node) -> None:
-        """Called for unknown node types."""
-        pass
+        """Call for unknown node types."""
+        return
 
 
-def resolve_relative_rst_links(text: str, base_link: str):
-    """Resolve all relative links in a given RST document.
+def resolve_relative_rst_links(text: str, base_link: str) -> str:
+    """Resolve all relative links in a given string representing an RST document.
 
     All links of form `link`_ become `link <base_link/link>`_.
     """
@@ -183,16 +183,15 @@ def resolve_relative_rst_links(text: str, base_link: str):
     for target in visitor.references:
         name = target.attributes['name']
         uri = target.attributes['refuri']
-        new_link = '`{} <{}{}>`_'.format(name, base_link, uri)
+        new_link = f'`{name} <{base_link}{uri}>`_'
         if name == uri:
-            text = text.replace('`<{}>`_'.format(uri), new_link)
+            text = text.replace(f'`<{uri}>`_', new_link)
         else:
-            text = text.replace('`{} <{}>`_'.format(name, uri), new_link)
+            text = text.replace(f'`{name} <{uri}>`_', new_link)
     return text
 
 
 class Package:
-
     """Default metadata and behaviour for a Python package setup script."""
 
     root_directory = '.'  # type: str
@@ -208,16 +207,22 @@ class Package:
     long_description = None  # type: str
     """If None, it will be generated from readme."""
 
-    url = 'https://mbdevpl.github.io/'  # type: str
-    download_url = 'https://github.com/mbdevpl'  # type: str
+    long_description_content_type = None  # type: str
+    """If None, it will be set accodring to readme file extension.
+
+    For this field to be automatically set, also long_description field has to be None.
+    """
+
+    url = 'https://github.com/mbdevpl'  # type: str
+    download_url = None  # type: str
     author = 'Mateusz Bysiek'  # type: str
-    author_email = 'mb@mbdev.pl'  # type: str
+    author_email = 'mateusz.bysiek@gmail.com'  # type: str
     # maintainer = None  # type: str
     # maintainer_email = None  # type: str
     license_str = 'Apache License 2.0'  # type: str
 
     classifiers = []  # type: t.List[str]
-    """List of valid project classifiers: https://pypi.python.org/pypi?:action=list_classifiers"""
+    """List of valid project classifiers: https://pypi.org/pypi?:action=list_classifiers"""
 
     keywords = []  # type: t.List[str]
 
@@ -254,19 +259,25 @@ class Package:
         raise AttributeError((cls, names))
 
     @classmethod
-    def parse_readme(cls, readme_path: str = 'README.rst', encoding: str = 'utf-8') -> str:
+    def parse_readme(cls, readme_path: str = 'README.rst',
+                     encoding: str = 'utf-8') -> t.Tuple[str, str]:
         """Parse readme and resolve relative links in it if it is feasible.
 
         Links are resolved if readme is in rst format and the package is hosted on GitHub.
         """
+        readme_path = pathlib.Path(readme_path)
         with HERE.joinpath(readme_path).open(encoding=encoding) as readme_file:
             long_description = readme_file.read()  # type: str
 
-        if readme_path.endswith('.rst') and cls.download_url.startswith('https://github.com/'):
-            base_url = '{}/blob/v{}/'.format(cls.download_url, cls.version)
+        if readme_path.suffix.lower() == '.rst' and cls.url.startswith('https://github.com/'):
+            base_url = f'{cls.url}/blob/v{cls.version}/'
             long_description = resolve_relative_rst_links(long_description, base_url)
 
-        return long_description
+        long_description_content_type = {'.rst': 'text/x-rst', '.md': 'text/markdown'}.get(
+            readme_path.suffix.lower(), 'text/plain')
+        long_description_content_type += '; charset=UTF-8'
+
+        return long_description, long_description_content_type
 
     @classmethod
     def prepare(cls) -> None:
@@ -274,7 +285,7 @@ class Package:
         if cls.version is None:
             cls.version = find_version(cls.name)
         if cls.long_description is None:
-            cls.long_description = cls.parse_readme()
+            cls.long_description, cls.long_description_content_type = cls.parse_readme()
         if cls.packages is None:
             cls.packages = find_packages(cls.root_directory)
         if cls.install_requires is None:
@@ -284,11 +295,13 @@ class Package:
 
     @classmethod
     def setup(cls) -> None:
-        """Run setuptools.setup() with correct arguments."""
+        """Call setuptools.setup with correct arguments."""
         cls.prepare()
         setuptools.setup(
             name=cls.name, version=cls.version, description=cls.description,
-            long_description=cls.long_description, url=cls.url, download_url=cls.download_url,
+            long_description=cls.long_description,
+            long_description_content_type=cls.long_description_content_type,
+            url=cls.url, download_url=cls.download_url,
             author=cls.author, author_email=cls.author_email,
             maintainer=cls.try_fields('maintainer', 'author'),
             maintainer_email=cls.try_fields('maintainer_email', 'author_email'),

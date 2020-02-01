@@ -1,3 +1,4 @@
+"""Trello board for recurring tasks."""
 
 import datetime
 import enum
@@ -18,7 +19,6 @@ YEAR = 365.25
 
 @enum.unique
 class Every(enum.Enum):
-
     """Available frequencies."""
 
     OneDay = 1
@@ -170,6 +170,7 @@ class RecurringBoardCache(BoardCache):
         self._not_soon = sorted(self._not_soon, key=lambda x: x.due_date)
 
     def organize_cards(self):
+        """Move cards between To do and Done columns depending on their deadlines."""
         todo_list = self.cached_lists['To do']
         done_list = self.cached_lists['Done']
         moved_to_todo = False

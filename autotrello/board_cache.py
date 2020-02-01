@@ -1,3 +1,4 @@
+"""Trello Board with cache."""
 
 import collections
 import enum
@@ -11,7 +12,6 @@ _LOG = logging.getLogger(__name__)
 
 @enum.unique
 class BoardKind(enum.Enum):
-
     """Available kinds of boards."""
 
     Warmup = 1 + 4

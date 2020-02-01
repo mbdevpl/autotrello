@@ -8,7 +8,7 @@ class Package(setup_boilerplate.Package):
 
     name = 'autotrello'
     description = 'Automation of workflows and high-level access to Trello.'
-    download_url = 'https://github.com/mbdevpl/autotrello'
+    url = 'https://github.com/mbdevpl/autotrello'
     classifiers = [
         'Development Status :: 1 - Planning',
         'Environment :: Console',
