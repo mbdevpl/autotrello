@@ -37,15 +37,13 @@ BOARD_LISTS = {
 class BoardCache:
     """Wrapper around trello.Board that caches all downloaded data."""
 
-    def __init__(self, board: trello.Board, board_kind: BoardKind, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, board: trello.Board, board_kind: BoardKind):
+        # super().__init__(*args, **kwargs)
         self._board = board
         self._board_kind = board_kind
-        self._lists = None
-        self._list_cards = None
+        self._lists = {}  # type: t.Mapping[str, trello.List]
+        self._list_cards = {}  # type: t.Mapping[str, t.Sequence[trello.Card]]
         self._refresh()
-        # assert all([_ in self._lists for _ in BOARD_LISTS[self._board_kind]]),
-        #    (board, board.cached_lists)
 
     @property
     def cached_lists(self) -> t.Mapping[str, trello.List]:
