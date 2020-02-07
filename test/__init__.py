@@ -11,3 +11,4 @@ _HANDLER.setFormatter(colorlog.ColoredFormatter(
 logging.basicConfig(level=logging.DEBUG, handlers=[_HANDLER])
 logging.getLogger().setLevel(logging.WARNING)
 logging.getLogger('autotrello').setLevel(logging.DEBUG)
+logging.getLogger('test').setLevel(logging.DEBUG)
