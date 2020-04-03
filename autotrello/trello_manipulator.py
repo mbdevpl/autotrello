@@ -89,7 +89,7 @@ class TrelloManipulator(trello.TrelloClient):
             f' {_MANIPULATOR_SYMBOL} {card.name}'
         card_data['desc'] = f'{_MANIPULATOR_SYMBOL} this is auto-created card linked to' \
             f' {card.url} from board {self._boards_by_id[card.board_id].url}' \
-            ' {_MANIPULATOR_SYMBOL}\n\n{card.description}'
+            f' {_MANIPULATOR_SYMBOL}\n\n{card.description}'
         if card.due_date:
             try:
                 card_data['due'] = card.due_date.isoformat()
