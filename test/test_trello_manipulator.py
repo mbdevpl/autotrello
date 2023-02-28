@@ -6,6 +6,8 @@ import unittest
 from autotrello.trello_manipulator import TrelloManipulator
 
 
+@unittest.skipUnless(
+    os.environ.get('AUTOTRELLO_TRELLO_API_KEY'), 'skipping tests depending on Trello API key')
 class Tests(unittest.TestCase):
 
     def test_construct(self):
