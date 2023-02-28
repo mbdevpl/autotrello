@@ -1,6 +1,5 @@
-# Jupyter Notebook
-.ipynb_checkpoints
-*-checkpoint.ipynb
+# IDE: Visual Studio Code
+/.vscode
 
 # OS: macOS
 .DS_Store
@@ -20,3 +19,7 @@ __pycache__
 # Python: coverage
 /htmlcov
 /.coverage
+
+# Python: Jupyter notebooks
+.ipynb_checkpoints
+*-checkpoint.ipynb
