@@ -10,8 +10,8 @@ autotrello
     :target: https://pypi.org/project/autotrello
     :alt: package version from PyPI
 
-.. image:: https://img.shields.io/pypi/l/autotrello.svg
-    :target: https://github.com/mbdevpl/autotrello/blob/master/NOTICE
+.. image:: https://img.shields.io/github/license/mbdevpl/autotrello.svg
+    :target: NOTICE
     :alt: license
 
 Automation of workflows and high-level access to Trello.
