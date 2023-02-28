@@ -41,6 +41,6 @@ Examples are available in `<examples.ipynb>`_.
 Requirements
 ============
 
-Python version 3.6 or later.
+Python version 3.11 or later.
 
 Python libraries as specified in `<requirements.txt>`_.
