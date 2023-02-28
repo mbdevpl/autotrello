@@ -8,7 +8,6 @@ import math
 import typing as t
 
 import trello  # py-trello package
-import tzlocal
 
 from .board_cache import BoardCache
 
@@ -137,8 +136,7 @@ class RecurringBoardCache(BoardCache):
 
     def _refresh(self):
         super()._refresh()
-        local = tzlocal.get_localzone()
-        self._now = datetime.datetime.now(local)
+        self._now = datetime.datetime.now().astimezone()
 
         invalid = []
         self._soon = []
