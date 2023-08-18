@@ -1,2 +1,2 @@
-coverage ~= 7.2
 -r requirements_test.txt
+coverage ~= 7.2

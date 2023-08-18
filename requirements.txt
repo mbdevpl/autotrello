@@ -1,2 +1,2 @@
 py-trello ~= 0.19
-version-query ~= 1.2
+version-query ~= 1.5
