@@ -1,14 +1,14 @@
-"""Initialization of tests of autotrello package."""
+"""Initialization of tests for autotrello package."""
 
 import logging
 
-import colorlog
+import boilerplates.logging
 
-_HANDLER = logging.StreamHandler()
-_HANDLER.setFormatter(colorlog.ColoredFormatter(
-    '{name} [{log_color}{levelname}{reset}] {message}', style='{'))
 
-logging.basicConfig(level=logging.DEBUG, handlers=[_HANDLER])
-logging.getLogger().setLevel(logging.WARNING)
-logging.getLogger('autotrello').setLevel(logging.DEBUG)
-logging.getLogger('test').setLevel(logging.DEBUG)
+class TestsLogging(boilerplates.logging.Logging):
+    """Test logging configuration."""
+
+    packages = ['autotrello']
+
+
+TestsLogging.configure()
