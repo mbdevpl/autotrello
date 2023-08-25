@@ -1,4 +1,4 @@
 [build-system]
 requires=[
-    'boilerplates[setup] ~= 0.5'
+    'boilerplates[setup] ~= 1.0'
 ]
